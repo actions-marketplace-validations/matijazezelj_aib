@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -221,7 +222,10 @@ func (s *Server) Start() error {
 	}
 	s.logger.Info("AIB server running", "url", "http://localhost"+s.listen)
 
-	return s.srv.ListenAndServe()
+	if err := s.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
 
 // Shutdown gracefully shuts down the server.
