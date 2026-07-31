@@ -15,7 +15,8 @@ sources:
     - path: "./testdata/cloudformation/template.yaml"
 
 server:
-  listen: ":8080"
+  # The demo has no API token, so keep its asset graph on this machine.
+  listen: "127.0.0.1:8080"
   read_only: true
 
 scan:

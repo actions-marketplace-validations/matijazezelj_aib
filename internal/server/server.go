@@ -182,6 +182,21 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func displayURL(listen string) string {
+	if strings.HasPrefix(listen, ":") {
+		return "http://localhost" + listen
+	}
+
+	host, port, err := net.SplitHostPort(listen)
+	if err != nil {
+		return "http://" + listen
+	}
+	if host == "0.0.0.0" || host == "::" {
+		host = "localhost"
+	}
+	return "http://" + net.JoinHostPort(host, port)
+}
+
 // Start starts the HTTP server.
 func (s *Server) Start() error {
 	s.done = make(chan struct{})
@@ -220,7 +235,7 @@ func (s *Server) Start() error {
 	if s.readOnly {
 		s.logger.Info("server running in read-only mode (scan triggers disabled)")
 	}
-	s.logger.Info("AIB server running", "url", "http://localhost"+s.listen)
+	s.logger.Info("AIB server running", "url", displayURL(s.listen))
 
 	if err := s.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
