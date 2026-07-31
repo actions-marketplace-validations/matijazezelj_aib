@@ -49,6 +49,21 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 }
 
+func TestDisplayURL(t *testing.T) {
+	tests := map[string]string{
+		":8080":             "http://localhost:8080",
+		"127.0.0.1:8080":    "http://127.0.0.1:8080",
+		"0.0.0.0:8080":      "http://localhost:8080",
+		"[::]:8080":         "http://localhost:8080",
+		"example.test:8080": "http://example.test:8080",
+	}
+	for listen, want := range tests {
+		if got := displayURL(listen); got != want {
+			t.Errorf("displayURL(%q) = %q, want %q", listen, got, want)
+		}
+	}
+}
+
 func TestLimitBody_UnderLimit(t *testing.T) {
 	handler := limitBody(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.ReadAll(r.Body)
