@@ -1,0 +1,31 @@
+storage:
+  path: "./data/demo.db"
+
+sources:
+  terraform:
+    - state_file: "./testdata/terraform/sample.tfstate"
+  kubernetes:
+    - path: "./testdata/kubernetes/manifests.yaml"
+  ansible:
+    - inventory: "./testdata/ansible/inventory.ini"
+      playbooks: "./testdata/ansible"
+  compose:
+    - path: "./testdata/compose/docker-compose.yml"
+  cloudformation:
+    - path: "./testdata/cloudformation/template.yaml"
+
+server:
+  # The demo has no API token, so keep its asset graph on this machine.
+  listen: "127.0.0.1:8080"
+  read_only: true
+
+scan:
+  on_startup: true
+  schedule: ""
+
+certs:
+  probe_enabled: false
+
+alerts:
+  stdout:
+    enabled: false

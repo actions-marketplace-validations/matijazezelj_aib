@@ -57,6 +57,20 @@ func TestEnvExpansion(t *testing.T) {
 	}
 }
 
+func TestDemoConfigBindsLoopback(t *testing.T) {
+	cfg, err := Load("../../configs/aib.demo.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cfg.Server.Listen != "127.0.0.1:8080" {
+		t.Fatalf("demo server.listen = %q, want loopback-only 127.0.0.1:8080", cfg.Server.Listen)
+	}
+	if cfg.Server.APIToken != "" {
+		t.Fatal("demo unexpectedly configures an API token; update this test if authentication is added")
+	}
+}
+
 func TestEnvExpansion_WebhookHeaders(t *testing.T) {
 	t.Setenv("AIB_WEBHOOK_KEY", "secret-key")
 

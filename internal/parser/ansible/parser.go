@@ -200,8 +200,8 @@ func inferHostDependencies(hostMap map[string]hostEntry, hostnames []string, now
 							SourceFile: h.sourceFile,
 							Provider:   "kubernetes",
 							Metadata:   meta,
-							LastSeen:  now,
-							FirstSeen: now,
+							LastSeen:   now,
+							FirstSeen:  now,
 						})
 						knownNodeIDs[toID] = true
 					}
@@ -262,8 +262,8 @@ func inferHostDependencies(hostMap map[string]hostEntry, hostnames []string, now
 					ToID:   toID,
 					Type:   rule.edgeType,
 					Metadata: map[string]string{
-						"source":   "ansible_inventory_var",
-						"var":      key,
+						"source":    "ansible_inventory_var",
+						"var":       key,
 						"raw_value": target,
 					},
 				})
@@ -313,6 +313,8 @@ func buildInferredDatabaseNode(h hostEntry, varKey, rawTarget, resolvedTarget st
 	connectionString := firstNonEmpty(h.vars["db_connection_string"], h.vars["database_url"], h.vars["connection_string"])
 	if connectionString == "" {
 		connectionString = fmt.Sprintf("%s://%s:%s/%s", dbScheme, hostAddress, dbPort, dbName)
+	} else {
+		connectionString = parser.RedactCredentials(connectionString)
 	}
 
 	dbNodeID := fmt.Sprintf("ansible:database:%s@%s", sanitizeNodePart(dbName), sanitizeNodePart(hostLabel))
@@ -451,10 +453,14 @@ func inferProvider(h hostEntry) string {
 	return "local"
 }
 
+// buildHostMetadata copies inventory vars onto the host node. Inventory is
+// operator-authored and freely holds ansible_password, become passwords, vault
+// tokens, and DSNs, so values are redacted both by key name and by shape before
+// they are persisted. See parser.RedactCredentials for where this data ends up.
 func buildHostMetadata(h hostEntry) map[string]string {
 	meta := make(map[string]string)
 	for k, v := range h.vars {
-		meta[k] = v
+		meta[k] = parser.RedactMetadataValue(k, v)
 	}
 	if len(h.groups) > 0 {
 		sort.Strings(h.groups)

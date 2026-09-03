@@ -3,13 +3,16 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -ldflags "-s -w -X main.version=$(VERSION)"
 GOFLAGS := -trimpath
 
-.PHONY: build run test test-verbose clean fmt lint docker
+.PHONY: build run demo test test-verbose clean fmt lint docker
 
 build:
 	go build $(GOFLAGS) $(LDFLAGS) -o bin/$(BINARY) ./cmd/aib
 
 run: build
 	./bin/$(BINARY)
+
+demo: build
+	./bin/$(BINARY) --config configs/aib.demo.yaml serve
 
 # Mirrors the CI test invocation (race detector + timeout) so local runs
 # catch what CI catches.

@@ -209,3 +209,68 @@ func TestParse_InferredDependenciesFromInventoryVars(t *testing.T) {
 		t.Error("missing web2 -> k8s redis connects_to edge")
 	}
 }
+
+func nodeMap(nodes []models.Node) map[string]models.Node {
+	m := make(map[string]models.Node, len(nodes))
+	for _, n := range nodes {
+		m[n.ID] = n
+	}
+	return m
+}
+
+// Inventory credentials reach aib.db, JSON reports, and /api/v1/graph, and the
+// GitHub Action publishes the first two as CI artifacts. No parser output may
+// carry the raw password.
+func TestParse_InventoryCredentialsAreNotPersisted(t *testing.T) {
+	p := NewAnsibleParser("")
+	result, err := p.Parse(context.Background(), "testdata/inventory_secrets.ini")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	secrets := []string{"SuperSecret123", "VaultPass456", "BecomePass789", "TokenAbc000"}
+
+	var dbNode *models.Node
+	for i := range result.Nodes {
+		for key, v := range result.Nodes[i].Metadata {
+			for _, secret := range secrets {
+				if strings.Contains(v, secret) {
+					t.Errorf("node %s leaked %s via metadata[%q] = %q", result.Nodes[i].ID, secret, key, v)
+				}
+			}
+		}
+		if result.Nodes[i].Type == models.AssetDatabase {
+			dbNode = &result.Nodes[i]
+		}
+	}
+	for _, e := range result.Edges {
+		for key, v := range e.Metadata {
+			for _, secret := range secrets {
+				if strings.Contains(v, secret) {
+					t.Errorf("edge %s leaked %s via metadata[%q] = %q", e.ID, secret, key, v)
+				}
+			}
+		}
+	}
+
+	// The host node keeps the var keys — only the values are replaced, so the
+	// graph still shows that a credential is configured.
+	web1, ok := nodeMap(result.Nodes)["ansible:vm:web1"]
+	if !ok {
+		t.Fatal("missing ansible:vm:web1")
+	}
+	if web1.Metadata["ansible_password"] != "REDACTED" {
+		t.Errorf("ansible_password = %q, want REDACTED", web1.Metadata["ansible_password"])
+	}
+	if web1.Metadata["ansible_host"] != "192.168.1.10" {
+		t.Errorf("ansible_host = %q, want the non-secret value preserved", web1.Metadata["ansible_host"])
+	}
+
+	if dbNode == nil {
+		t.Fatal("expected an inferred database node from database_url")
+	}
+	cs := dbNode.Metadata["connection_string"]
+	if cs != "postgres://admin:REDACTED@192.168.1.20:5432/exampledb" {
+		t.Errorf("connection_string = %q, want the redacted DSN", cs)
+	}
+}

@@ -4,6 +4,8 @@
 
 ![AIB Web UI](assets/aib.png)
 
+_The bundled demo combines the Terraform, Kubernetes, Ansible, Docker Compose, and CloudFormation examples._
+
 AIB builds a dependency graph from your infrastructure-as-code and stores it in SQLite. From that graph you can inspect blast radius, drift, certificate expiry, and security findings — all from one tool.
 
 Part of the "in a box" toolkit alongside [SIB](https://github.com/matijazezelj/sib) and [NIB](https://github.com/matijazezelj/nib).
@@ -11,16 +13,25 @@ Part of the "in a box" toolkit alongside [SIB](https://github.com/matijazezelj/s
 ## Quick Start
 
 ```bash
-# Install
-git clone https://github.com/matijazezelj/aib.git && cd aib && make build
-# or: go install github.com/matijazezelj/aib/cmd/aib@latest
-# or: docker compose -f deploy/docker-compose.yml up --build
-
-# Scan & explore
-aib scan terraform /path/to/terraform.tfstate
-aib scan k8s /path/to/manifests/
-aib serve   # http://localhost:8080
+# Explore the bundled examples
+git clone https://github.com/matijazezelj/aib.git
+cd aib
+make demo
 ```
+
+Open [http://localhost:8080](http://localhost:8080). The demo scans the example Terraform, Kubernetes, Ansible, Docker Compose, and CloudFormation files on startup and stores their graph in `data/demo.db`.
+
+To scan your own infrastructure:
+
+```bash
+make build
+# Scan & explore
+./bin/aib scan terraform /path/to/terraform.tfstate
+./bin/aib scan k8s /path/to/manifests/
+./bin/aib serve   # http://localhost:8080
+```
+
+Alternatively, install with `go install github.com/matijazezelj/aib/cmd/aib@latest` or run `docker compose -f deploy/docker-compose.yml up --build`.
 
 **Typical workflow:** scan sources → query the graph or open the UI → run `graph audit` → re-scan to track drift.
 
@@ -49,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: matijazezelj/aib@v1.4.4
+      - uses: matijazezelj/aib@v1.5.0
         with:
           paths: .
           sources: auto
@@ -218,6 +229,7 @@ alerts:
   stdout: { enabled: true }
   webhook: { enabled: false, url: "http://sib:8080/api/v1/events" }
   slack: { enabled: false, webhook_url: "https://hooks.slack.com/..." }
+  teams: { enabled: false, webhook_url: "https://example.webhook.office.com/..." }
 ```
 
 All values support `${ENV_VAR}` expansion and `AIB_`-prefixed env overrides (e.g. `AIB_SERVER_LISTEN`).
